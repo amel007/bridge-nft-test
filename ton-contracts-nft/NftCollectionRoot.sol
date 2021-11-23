@@ -4,11 +4,12 @@ pragma AbiHeader expire;
 pragma AbiHeader time;
 
 import './resolvers/RootResolver.sol';
-import './utils/CellEncoder.sol';
 import './interfaces/INftCollectionRoot.sol';
+import './interfaces/ITransferNftProxy.sol';
 
-contract NftCollectionRoot is RootResolver, CellEncoder, INftCollectionRoot {
+contract NftCollectionRoot is RootResolver, INftCollectionRoot {
 
+    address _addrTransferProxy;
     uint128 _idCallback;
     uint256 _totalDeployedRoot;
 
@@ -26,8 +27,9 @@ contract NftCollectionRoot is RootResolver, CellEncoder, INftCollectionRoot {
 
     mapping(uint128 => Callback) transferCallbacks;
 
-    constructor(TvmCell codeRoot, TvmCell codeIndex, TvmCell codeData) public {
+    constructor(address addrTransferProxy, TvmCell codeRoot, TvmCell codeIndex, TvmCell codeData) public {
         tvm.accept();
+        _addrTransferProxy = addrTransferProxy;
         _codeRoot = codeRoot;
         _codeIndex = codeIndex;
         _codeData = codeData;
@@ -78,22 +80,22 @@ contract NftCollectionRoot is RootResolver, CellEncoder, INftCollectionRoot {
 
         address addrOwner = address.makeAddrStd(data.wid, data.owner_addr);
 
-        NftRoot(addrRoot).mintNft{value: 0, flag:128}(sendIdCallbak, addrOwner, data.token_id);
+        NftRoot(addrRoot).mintNft{value: 0, flag:128}(sendIdCallbak, addrOwner, data.token_id, data.metadata);
     }
 
-    function transferNft(TvmCell data) public override {
-        require(msg.value >= Constants.MIN_FOR_TRANSFER_NFT);
+    function transferNft(
+        address gasTo,
+        uint160 collection_addr,
+        uint256 token_id,
+        int8 wid,
+        uint256 owner_addr,
+        string metadata
+    ) public override {
+        require(msg.sender == _addrTransferProxy);
 
         tvm.rawReserve(address(this).balance - msg.value, 2);
-        (
-            uint160 collection_addr,
-            uint256 token_id,
-            int8 wid,
-            uint256 owner_addr,
-            string metadata
-        ) = decodeEthereumEventData(data);
 
-        sendMsgRootNft(Callback(msg.sender, collection_addr, token_id, wid, owner_addr, metadata));
+        sendMsgRootNft(Callback(gasTo, collection_addr, token_id, wid, owner_addr, metadata));
     }
 
     function transferNftCallback(uint128 idCallback) public override {
@@ -109,6 +111,17 @@ contract NftCollectionRoot is RootResolver, CellEncoder, INftCollectionRoot {
         delete transferCallbacks[idCallback];
 
         data.sender_msg.transfer({value:0, flag:128});
+    }
+
+    function lockNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo, address addrTo) public override {
+        address addrRoot = resolveRoot(address(this), idCollection);
+
+        require(msg.sender == addrRoot);
+
+        tvm.rawReserve(address(this).balance - msg.value, 2);
+
+        // todo check if addrTo != _addrTransferProxy return ownership gasTo ???
+        ITransferNftProxy(_addrTransferProxy).lockNftCallback{value: 0, flag: 128}(idCollection, idToken, payload, gasTo);
     }
 
     function getInfo() public override view returns (uint256 totalDeployedRoot) {

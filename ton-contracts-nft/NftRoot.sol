@@ -28,7 +28,7 @@ contract NftRoot is DataResolver, IndexResolver, INftRoot {
         INftCollectionRoot(_addrCollectionRoot).deployCollectionCallback{value: 0, flag: 128}(idCallback);
     }
 
-    function mintNft(uint128 idCallback, address addrOwner, uint256 tokenId) public override {
+    function mintNft(uint128 idCallback, address addrOwner, uint256 tokenId, string metadata) public override {
         require(msg.sender == _addrCollectionRoot);
 
         require(msg.value >= Constants.MIN_FOR_DEPLOY + Constants.MIN_MSG_VALUE);
@@ -37,7 +37,7 @@ contract NftRoot is DataResolver, IndexResolver, INftRoot {
 
         TvmCell codeData = _buildDataCode(address(this));
         TvmCell stateData = _buildDataState(codeData, tokenId);
-        new Data{stateInit: stateData, value: 0, flag: 128}(addrOwner, _codeIndex, idCallback);
+        new Data{stateInit: stateData, value: 0, flag: 128}(addrOwner, _codeIndex, idCallback, metadata);
     }
 
     function mintNftCallback(uint256 id, uint128 idCallback) public override {
@@ -49,6 +49,15 @@ contract NftRoot is DataResolver, IndexResolver, INftRoot {
         _totalMinted++;
 
         INftCollectionRoot(_addrCollectionRoot).transferNftCallback{value: 0, flag: 128}(idCallback);
+    }
+
+    function lockNftCallback(uint256 idToken, TvmCell payload, address gasTo, address addrTo) public override {
+        address addrData = resolveData(address(this), idToken);
+        require(msg.sender == addrData);
+
+        tvm.rawReserve(Constants.MIN_FOR_CONTRACT, 2);
+
+        INftCollectionRoot(_addrCollectionRoot).lockNftCallback{value: 0, flag: 128}(_id, idToken, payload, gasTo, addrTo);
     }
 
     function getInfo() public override view returns (uint256 totalMinted) {
