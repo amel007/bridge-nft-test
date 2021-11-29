@@ -51,13 +51,13 @@ contract NftRoot is DataResolver, IndexResolver, INftRoot {
         INftCollectionRoot(_addrCollectionRoot).transferNftCallback{value: 0, flag: 128}(idCallback);
     }
 
-    function lockNftCallback(uint256 idToken, TvmCell payload, address gasTo, address addrTo) public override {
+    function returnNftCallback(uint256 idToken, TvmCell payload, address gasTo) public override {
         address addrData = resolveData(address(this), idToken);
         require(msg.sender == addrData);
 
         tvm.rawReserve(Constants.MIN_FOR_CONTRACT, 2);
 
-        INftCollectionRoot(_addrCollectionRoot).lockNftCallback{value: 0, flag: 128}(_id, idToken, payload, gasTo, addrTo);
+        INftCollectionRoot(_addrCollectionRoot).returnNftCallback{value: 0, flag: 128}(_id, idToken, payload, gasTo);
     }
 
     function getInfo() public override view returns (uint256 totalMinted) {

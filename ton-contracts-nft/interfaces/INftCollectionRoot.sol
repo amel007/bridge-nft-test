@@ -11,7 +11,7 @@ interface INftCollectionRoot {
         string metadata
     ) external;
     function transferNftCallback(uint128 idCallback) external;
-    function lockNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo, address addrTo) external;
+    function returnNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo) external;
     function getInfo() external view returns (uint256 totalDeployedRoot);
 
 }

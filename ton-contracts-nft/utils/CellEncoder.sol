@@ -34,4 +34,32 @@ contract CellEncoder {
             metadata
         ) = data.toSlice().decode(uint160, uint256, int8, uint256, string);
     }
+
+    function encodeTonEventData(
+        uint160 collection_addr,
+        uint256 token_id,
+        uint160 owner_addr
+    ) public pure returns(
+        TvmCell data
+    ) {
+        TvmBuilder builder;
+
+        builder.store(collection_addr, token_id, owner_addr);
+
+        data = builder.toCell();
+    }
+
+    function decodeTonEventData(
+        TvmCell data
+    ) public pure returns(
+        uint160 collection_addr,
+        uint256 token_id,
+        uint160 owner_addr
+    ) {
+        (
+        collection_addr,
+        token_id,
+        owner_addr
+        ) = data.toSlice().decode(uint160, uint256, uint160);
+    }
 }

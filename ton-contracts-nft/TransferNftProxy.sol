@@ -13,7 +13,7 @@ contract TransferNftProxy is ITransferNftProxy, CellEncoder {
     address _owner;
     address _addrCollectionRoot;
 
-    event lockNft(uint160 collection_addr, uint256 token_id, uint160 owner_addr);
+    event returnNft(uint160 collection_addr, uint256 token_id, uint160 owner_addr);
 
     constructor(address owner, address addrCollectionRoot) public {
         tvm.accept();
@@ -41,7 +41,7 @@ contract TransferNftProxy is ITransferNftProxy, CellEncoder {
         INftCollectionRoot(_addrCollectionRoot).transferNft{value: 0, flag: 128}(msg.sender, collection_addr, token_id, wid, owner_addr, metadata);
     }
 
-    function lockNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo) public override {
+    function returnNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo) public override {
 
         require(msg.sender == _addrCollectionRoot);
 
@@ -49,7 +49,7 @@ contract TransferNftProxy is ITransferNftProxy, CellEncoder {
 
         uint160 collection_addr = payload.toSlice().decode(uint160);
 
-        emit lockNft(uint160(idCollection), idToken, collection_addr);
+        emit returnNft(uint160(idCollection), idToken, collection_addr);
 
         gasTo.transfer({value: 0, flag: 128});
     }

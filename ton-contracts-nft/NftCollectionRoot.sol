@@ -113,15 +113,14 @@ contract NftCollectionRoot is RootResolver, INftCollectionRoot {
         data.sender_msg.transfer({value:0, flag:128});
     }
 
-    function lockNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo, address addrTo) public override {
+    function returnNftCallback(uint256 idCollection, uint256 idToken, TvmCell payload, address gasTo) public override {
         address addrRoot = resolveRoot(address(this), idCollection);
 
         require(msg.sender == addrRoot);
 
         tvm.rawReserve(address(this).balance - msg.value, 2);
 
-        // todo check if addrTo != _addrTransferProxy return ownership gasTo ???
-        ITransferNftProxy(_addrTransferProxy).lockNftCallback{value: 0, flag: 128}(idCollection, idToken, payload, gasTo);
+        ITransferNftProxy(_addrTransferProxy).returnNftCallback{value: 0, flag: 128}(idCollection, idToken, payload, gasTo);
     }
 
     function getInfo() public override view returns (uint256 totalDeployedRoot) {

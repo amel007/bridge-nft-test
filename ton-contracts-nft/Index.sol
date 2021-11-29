@@ -38,6 +38,6 @@ contract Index is IIndex {
 
     function destruct() public override {
         require(msg.sender == _addrData);
-        selfdestruct(_addrData);
+        selfdestruct(_addrOwner);
     }
 }

@@ -39,15 +39,12 @@ contract Data is IData, IndexResolver {
         INftRoot(addrRoot).mintNftCallback{value: 0, flag: 128}(_id, idCallback);
     }
 
-    function changeOwner(address addrTo) private {
+    // TODO add destAddr to .destruct() => .destruct(destAddr)
+    function destructIndex() private {
         address oldIndexOwner = resolveIndex(_addrRoot, address(this), _addrOwner);
         IIndex(oldIndexOwner).destruct();
         address oldIndexOwnerRoot = resolveIndex(address(0), address(this), _addrOwner);
         IIndex(oldIndexOwnerRoot).destruct();
-
-        _addrOwner = addrTo;
-
-        deployIndex(addrTo);
     }
 
     function transferOwnership(address addrTo) public override {
@@ -56,23 +53,27 @@ contract Data is IData, IndexResolver {
 
         tvm.rawReserve(Constants.MIN_FOR_CONTRACT, 2);
 
-        changeOwner(addrTo);
+        destructIndex();
+
+        _addrOwner = addrTo;
+
+        deployIndex(addrTo);
 
         msg.sender.transfer({value: 0, flag: 128});
     }
 
-    function lockNft(address addrTo, TvmCell payload) public override {
+    function returnNft(TvmCell payload) public override {
         require(msg.sender == _addrOwner);
-        require(msg.value >= Constants.MIN_MSG_VALUE + (Constants.MIN_FOR_CONTRACT * 2));
+        require(msg.value >= Constants.MIN_MSG_VALUE + Constants.MIN_FOR_CONTRACT);
 
-        tvm.rawReserve(Constants.MIN_FOR_CONTRACT, 2);
+        destructIndex();
 
-        // todo or remove nft???
-        changeOwner(addrTo);
+        INftRoot(_addrRoot).returnNftCallback{value: 0, flag: 64}(_id, payload, msg.sender);
 
-        INftRoot(_addrRoot).lockNftCallback{value: 0, flag: 128}(_id, payload, msg.sender, addrTo);
+        selfdestruct(msg.sender);
     }
 
+    // TODO add require(addrData or addrRoot) to constructor Index
     function deployIndex(address owner) private {
         TvmCell codeIndexOwner = _buildIndexCode(_addrRoot, owner);
         TvmCell stateIndexOwner = _buildIndexState(codeIndexOwner, address(this));
